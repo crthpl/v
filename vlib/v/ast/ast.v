@@ -764,6 +764,7 @@ pub mut:
 	key_type  table.Type
 	val_type  table.Type
 	cond_type table.Type
+	high_type table.Type
 	kind      table.Kind // array/map/string
 	label     string     // `label: for {`
 	scope     &Scope

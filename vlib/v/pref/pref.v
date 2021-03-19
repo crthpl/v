@@ -38,6 +38,7 @@ pub enum Backend {
 	c // The (default) C backend
 	js // The JavaScript backend
 	x64 // The x64 backend
+	interpret // Interpret the ast
 }
 
 pub enum CompilerType {
@@ -370,6 +371,9 @@ pub fn parse_args(known_external_commands []string, args []string) (&Preferences
 				res.backend = .x64
 				res.build_options << arg
 			}
+			'-interpret' {
+				res.backend = .interpret
+			}
 			'-W' {
 				res.warns_are_errors = true
 			}
@@ -552,6 +556,21 @@ pub fn parse_args(known_external_commands []string, args []string) (&Preferences
 			eprintln('It looks like you wanted to run "${res.path}.v", so we went ahead and did that since "$res.path" is an executable.')
 			res.path += '.v'
 		}
+	} else if command == 'interpret' {
+		res.backend = .interpret
+		if command_pos + 2 > args.len {
+			eprintln('v interpret: no v files listed')
+			exit(1)
+		}
+		res.path = args[command_pos + 1]
+		res.run_args = args[command_pos + 2..]
+
+		must_exist(res.path)
+		if !res.path.ends_with('.v') && os.is_executable(res.path) && os.is_file(res.path)
+			&& os.is_file(res.path + '.v') {
+			eprintln('It looks like you wanted to run "${res.path}.v", so we went ahead and did that since "$res.path" is an executable.')
+			res.path += '.v'
+		}
 	}
 	if command == 'build-module' {
 		res.build_mode = .build_module
@@ -626,6 +645,7 @@ pub fn backend_from_string(s string) ?Backend {
 		'c' { return .c }
 		'js' { return .js }
 		'x64' { return .x64 }
+		'interpret' { return .interpret }
 		else { return error('Unknown backend type $s') }
 	}
 }

@@ -26,8 +26,7 @@ const (
 	valid_comp_if_compilers = ['gcc', 'tinyc', 'clang', 'mingw', 'msvc', 'cplusplus']
 	valid_comp_if_platforms = ['amd64', 'aarch64', 'x64', 'x32', 'little_endian', 'big_endian']
 	valid_comp_if_other     = ['js', 'debug', 'prod', 'test', 'glibc', 'prealloc',
-		'no_bounds_checking',
-	]
+		'no_bounds_checking', 'interpreter']
 	array_builtin_methods   = ['filter', 'clone', 'repeat', 'reverse', 'map', 'slice', 'sort',
 		'contains', 'index', 'wait', 'any', 'all', 'first', 'last', 'pop']
 )
@@ -1912,6 +1911,33 @@ pub fn (mut c Checker) call_fn(mut call_expr ast.CallExpr) table.Type {
 		}
 	}
 	if !found {
+		if c.pref.backend == .interpret {
+			found = true // TODO: use builtin instead of hardcoding
+			mut res := table.Fn{}
+			match fn_name {
+				'println' {
+					res = {
+						name: 'println'
+						params: [table.Param{
+							name: 's'
+							is_mut: false
+							typ: table.string_type_idx
+						}]
+						return_type: 0
+						language: .v
+						is_pub: true
+						mod: 'builtin'
+					}
+				}
+				else {
+					found = false
+				}
+			}
+			f = res
+		}
+	}
+
+	if !found {
 		c.error('unknown function: $fn_name', call_expr.pos)
 		return table.void_type
 	}
@@ -3532,6 +3558,7 @@ fn (mut c Checker) for_in_stmt(mut node ast.ForInStmt) {
 		} else if typ_idx == table.string_type_idx || high_type_idx == table.string_type_idx {
 			c.error('range type can not be string', node.cond.position())
 		}
+		node.high_type = high_type
 	} else {
 		sym := c.table.get_type_symbol(typ)
 		if sym.kind == .struct_ {
@@ -5489,6 +5516,7 @@ fn (mut c Checker) comp_if_branch(cond ast.Expr, pos token.Position) bool {
 					'glibc' { return false } // TODO
 					'prealloc' { return !c.pref.prealloc }
 					'no_bounds_checking' { return cond.name !in c.pref.compile_defines_all }
+					'interpreter' { c.pref.backend != .interpret }
 					else { return false }
 				}
 			} else if cond.name !in c.pref.compile_defines_all {

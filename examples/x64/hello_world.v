@@ -1,21 +1,18 @@
-//fn println(s string) { }
+// fn println(s string) { }
 
-//fn test_fn() {
-	//println('test fn')
-//}
+fn test_fn() {
+	println('Hello worl from testfn')
+}
 
 fn main() {
 	println('x64 test')
-	//i := 0
-	//for i < 5 {
-	for _ in 1..5 {
+	mut i := 0
+	for i < 5 {
+		// for _ in 0 .. 5 {
 		println('Hello world from V x64 machine code generator!')
-		//i++
+		i++
 	}
-		/*
 	println('Hello again!')
-	//test_fn()
+	test_fn()
 	println('done')
-	*/
 }
-

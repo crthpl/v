@@ -225,9 +225,7 @@ string _STR_TMP(const char *fmt, ...) {
 	#define __IRQHANDLER
 	#undef TCCSKIP
 	#define TCCSKIP(x)
-	// #include <byteswap.h>
 	#ifndef _WIN32
-		#include <execinfo.h>
 		int tcc_backtrace(const char *fmt, ...);
 	#endif
 #endif
@@ -325,7 +323,6 @@ static inline bool _us64_lt(uint64_t a, int64_t b) { return a < INT64_MAX && (in
 #endif
 
 //includes
-#include <stdint.h>
 #if defined(_MSC_VER) && defined(_M_X64)
 	#include <intrin.h>
 	#pragma intrinsic(_umul128)
@@ -470,92 +467,29 @@ static inline uint64_t wy2u0k(uint64_t r, uint64_t k){ _wymum(&r,&k); return k; 
 	c_headers       = c_helper_macros + c_unsigned_comparison_functions + c_common_macros +
 		r'
 // c_headers
-typedef int (*qsort_callback_func)(const void*, const void*);
-#include <stdio.h>  // TODO remove all these includes, define all function signatures and types manually
-#include <stdlib.h>
-#include <string.h>
-
-#if defined(_WIN32) || defined(__CYGWIN__)
-	#define VV_EXPORTED_SYMBOL extern __declspec(dllexport)
-	#define VV_LOCAL_SYMBOL static
-#else
-	// 4 < gcc < 5 is used by some older Ubuntu LTS and Centos versions,
-	// and does not support __has_attribute(visibility) ...
-	#ifndef __has_attribute
-		#define __has_attribute(x) 0  // Compatibility with non-clang compilers.
-	#endif
-	#if (defined(__GNUC__) && (__GNUC__ >= 4)) || (defined(__clang__) && __has_attribute(visibility))
-		#ifdef ARM
-			#define VV_EXPORTED_SYMBOL  extern __attribute__((externally_visible,visibility("default")))
-		#else
-			#define VV_EXPORTED_SYMBOL  extern __attribute__((visibility("default")))
-		#endif
-		#define VV_LOCAL_SYMBOL  __attribute__ ((visibility ("hidden")))
-	#else
-		#define VV_EXPORTED_SYMBOL extern
-		#define VV_LOCAL_SYMBOL static
-	#endif
-#endif
-
-#if defined(__TINYC__) && defined(__has_include)
-// tcc does not support has_include properly yet, turn it off completely
-#undef __has_include
-#endif
 
 #ifndef _WIN32
-	#if defined __has_include
-		#if __has_include (<execinfo.h>)
-			#include <execinfo.h>
-		#else
-			// Most probably musl OR __ANDROID__ ...
-			int backtrace (void **__array, int __size) { return 0; }
-			char **backtrace_symbols (void *const *__array, int __size){ return 0; }
-			void backtrace_symbols_fd (void *const *__array, int __size, int __fd){}
-		#endif
-	#endif
-#endif
-
-#include <stdarg.h> // for va_list
-
-//================================== GLOBALS =================================*/
-//byte g_str_buf[1024];
-byte* g_str_buf;
-int load_so(byteptr);
-void reload_so();
-void _vinit(int ___argc, voidptr ___argv);
-void _vcleanup();
-#define sigaction_size sizeof(sigaction);
-#define _ARR_LEN(a) ( (sizeof(a)) / (sizeof(a[0])) )
-
-void v_free(voidptr ptr);
-voidptr memdup(voidptr src, int sz);
-static voidptr memfreedup(voidptr ptr, voidptr src, int sz) {
-	v_free(ptr); // heloe
-	return memdup(src, sz);
-}
-
-
-#if INTPTR_MAX == INT32_MAX
-	#define TARGET_IS_32BIT 1
-#elif INTPTR_MAX == INT64_MAX
-	#define TARGET_IS_64BIT 1
+	// #include <ctype.h>
+	// #include <sys/time.h>
+	// #include <unistd.h> // sleep
+	
+#ifdef __APPLE__
+	typedef int suseconds_t;
+	typedef long time_t;
+	struct timeval {
+		__darwin_time_t      tv_sec;     /* seconds */
+		__darwin_suseconds_t tv_usec;    /* microseconds */
+	};
 #else
-	#error "The environment is not 32 or 64-bit."
+	typedef long suseconds_t;
+	typedef long long time_t;
+	struct timeval {
+		time_t      tv_sec;     /* seconds */
+		suseconds_t tv_usec;    /* microseconds */
+	};
 #endif
-
-#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ || defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || defined(__BIG_ENDIAN__) || defined(__ARMEB__) || defined(__THUMBEB__) || defined(__AARCH64EB__) || defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
-	#define TARGET_ORDER_IS_BIG 1
-#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ || defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || defined(__LITTLE_ENDIAN__) || defined(__ARMEL__) || defined(__THUMBEL__) || defined(__AARCH64EL__) || defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__) || defined(_M_AMD64) || defined(_M_X64) || defined(_M_IX86)
-	#define TARGET_ORDER_IS_LITTLE 1
-#else
-	#error "Unknown architecture endianness"
-#endif
-
-#ifndef _WIN32
-	#include <ctype.h>
-	#include <locale.h> // tolower
-	#include <sys/time.h>
-	#include <unistd.h> // sleep
+	
+	int gettimeofday(struct timeval *restrict tv, struct timezone *restrict tz);
 	extern char **environ;
 #endif
 
@@ -591,6 +525,135 @@ static voidptr memfreedup(voidptr ptr, voidptr src, int sz) {
 #ifdef __sun
 	#include <sys/types.h>
 	#include <sys/wait.h> // os__wait uses wait on nix
+#endif
+
+typedef int (*qsort_callback_func)(const void*, const void*);
+typedef unsigned long size_t;
+
+// <stdarg.h> defines
+typedef __builtin_va_list va_list;
+#define va_start(a, b) __builtin_va_start(a, b)
+#define va_end(a)      __builtin_va_end(a)
+#define va_arg(a, b)   __builtin_va_arg(a, b)
+#define va_copy(a, b)  __builtin_va_copy(a, b)
+
+// <stdlib.h> defines
+void* malloc(size_t size);
+void* calloc(size_t count, size_t size);
+void* realloc(void *ptr, size_t size);
+void free(void *ptr);
+void exit(int status);
+
+// // <stdio.h>  defines
+// // printf family:
+// int vsnprintf(char * restrict str, size_t size, const char * restrict format, va_list ap);
+// int vsprintf(char * restrict str, const char * restrict format, va_list ap);
+
+// // files:
+// int fflush(FILE *stream);
+
+// stdio still has to be defined, since the FILE struct and std(in|out|err) are implementation dependent
+#include <stdio.h>
+
+// <string.h> defines
+void* memcpy(void *restrict dst, const void *restrict src, size_t n);
+void* memset(void *b, int c, size_t len);
+void* memmove(void *dst, const void *src, size_t len);
+int memcmp(const void *s1, const void *s2, size_t n);
+char* strerror(int errnum);
+size_t strlen(const char *s);
+
+// <signal.h> defines
+#ifdef __APPLE__
+	typedef int pid_t;
+#elif defined _WIN32
+	typedef long long pid_t;
+#else
+	typedef long pid_t;
+#endif
+int kill(pid_t pid, int sig);
+
+#include <stdint.h>
+
+
+#if defined(_WIN32) || defined(__CYGWIN__)
+	#define VV_EXPORTED_SYMBOL extern __declspec(dllexport)
+	#define VV_LOCAL_SYMBOL static
+#else
+	// 4 < gcc < 5 is used by some older Ubuntu LTS and Centos versions,
+	// and does not support __has_attribute(visibility) ...
+	#ifndef __has_attribute
+		#define __has_attribute(x) 0  // Compatibility with non-clang compilers.
+	#endif
+	#if (defined(__GNUC__) && (__GNUC__ >= 4)) || (defined(__clang__) && __has_attribute(visibility))
+		#ifdef ARM
+			#define VV_EXPORTED_SYMBOL  extern __attribute__((externally_visible,visibility("default")))
+		#else
+			#define VV_EXPORTED_SYMBOL  extern __attribute__((visibility("default")))
+		#endif
+		#define VV_LOCAL_SYMBOL  __attribute__ ((visibility ("hidden")))
+	#else
+		#define VV_EXPORTED_SYMBOL extern
+		#define VV_LOCAL_SYMBOL static
+	#endif
+#endif
+
+#if defined(__TINYC__) && defined(__has_include)
+// tcc does not support has_include properly yet, turn it off completely
+#undef __has_include
+#endif
+
+#ifndef _WIN32
+	#if defined __has_include
+		#if __has_include (<execinfo.h>)
+			int backtrace(void** array, int size);
+			char** backtrace_symbols(void* const* array, int size);
+			void backtrace_symbols_fd(void* const* array, int size, int fd);
+		#else
+			// Most probably musl OR __ANDROID__ ...
+			int backtrace (void **__array, int __size) { return 0; }
+			char **backtrace_symbols (void *const *__array, int __size){ return 0; }
+			void backtrace_symbols_fd (void *const *__array, int __size, int __fd){}
+		#endif
+	#endif
+#endif
+
+#include <stdarg.h> // for va_list
+//#include "fns.h"
+
+
+//================================== GLOBALS =================================*/
+//byte g_str_buf[1024];
+byte* g_str_buf;
+int load_so(byteptr);
+void reload_so();
+void _vinit(int ___argc, voidptr ___argv);
+void _vcleanup();
+#define sigaction_size sizeof(sigaction);
+#define _ARR_LEN(a) ( (sizeof(a)) / (sizeof(a[0])) )
+
+void v_free(voidptr ptr);
+voidptr memdup(voidptr src, int sz);
+static voidptr memfreedup(voidptr ptr, voidptr src, int sz) {
+	v_free(ptr); // heloe
+	return memdup(src, sz);
+}
+
+
+#if INTPTR_MAX == INT32_MAX
+	#define TARGET_IS_32BIT 1
+#elif INTPTR_MAX == INT64_MAX
+	#define TARGET_IS_64BIT 1
+#else
+	#error "The environment is not 32 or 64-bit."
+#endif
+
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ || defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || defined(__BIG_ENDIAN__) || defined(__ARMEB__) || defined(__THUMBEB__) || defined(__AARCH64EB__) || defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
+	#define TARGET_ORDER_IS_BIG 1
+#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ || defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || defined(__LITTLE_ENDIAN__) || defined(__ARMEL__) || defined(__THUMBEL__) || defined(__AARCH64EL__) || defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__) || defined(_M_AMD64) || defined(_M_X64) || defined(_M_IX86)
+	#define TARGET_ORDER_IS_LITTLE 1
+#else
+	#error "Unknown architecture endianness"
 #endif
 
 #ifdef _WIN32

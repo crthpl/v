@@ -319,7 +319,7 @@ pub fn (t Time) long_weekday_str() string {
 // ticks returns a number of milliseconds elapsed since system start.
 pub fn ticks() i64 {
 	$if windows {
-		return C.GetTickCount()
+		return C.GetTickCount64()
 	} $else {
 		ts := C.timeval{}
 		C.gettimeofday(&ts, 0)

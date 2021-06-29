@@ -141,3 +141,49 @@ fn test_escape_string() {
 	assert '\x61' == 'a'
 	assert '\x62' == 'b'
 }
+
+fn test_hex_digit() {
+	result := scan_kinds('0xF 0xf')
+	assert result.len == 2
+	assert result[0] == .number
+	assert result[1] == .number
+}
+
+/*
+fn test_include() {
+	result := scan_kinds('#include <float.h>')
+	assert result.len == 1
+	assert result[0] == .hash
+}*/
+
+fn test_at() {
+	result := scan_kinds('@none @FN')
+	assert result.len == 2
+	assert result[0] == .name
+	assert result[1] == .at
+}
+
+fn test_decimal() {
+	result := scan_kinds('0.0001')
+	assert result.len == 1
+	assert result[0] == .number
+}
+
+fn test_string_interpolation() {
+	result := scan_kinds("abc 'def' 'ghi \$jkl' nmo 'pqr \$stu vwx' yz")
+	println(result)
+
+	assert result.len == 12
+	assert result[0] == .name
+	assert result[1] == .string
+	assert result[2] == .string
+	assert result[3] == .str_dollar
+	assert result[4] == .name
+	assert result[5] == .string
+	assert result[6] == .name
+	assert result[7] == .string
+	assert result[8] == .str_dollar
+	assert result[9] == .name
+	assert result[10] == .string
+	assert result[11] == .name
+}

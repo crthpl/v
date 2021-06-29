@@ -43,9 +43,9 @@ pub fn (mut pos Position) update_last_line(last_line int) {
 pub fn (tok &Token) position() Position {
 	return Position{
 		len: tok.len
-		line_nr: tok.line_nr - 1
+		line_nr: tok.line_nr
 		pos: tok.pos
-		last_line: tok.line_nr - 1
-		col: tok.col - 1
+		last_line: tok.line_nr
+		col: tok.col
 	}
 }

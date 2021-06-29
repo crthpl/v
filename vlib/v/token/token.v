@@ -10,9 +10,8 @@ pub:
 	line_nr int    // the line number in the source where the token occured
 	col     int    // the column in the source where the token occured
 	// name_idx int // name table index for O(1) lookup
-	pos  int // the position of the token in scanner text
-	len  int // length of the literal
-	tidx int // the index of the token
+	pos int // the position of the token in scanner text
+	len int // length of the literal
 }
 
 pub enum Kind {
@@ -23,6 +22,9 @@ pub enum Kind {
 	string // 'foo'
 	str_inter // 'name=$user.name'
 	chartoken // `A` - rune
+	hash // #...
+	comment
+	_op_beg_
 	plus // +
 	minus // -
 	mul // *
@@ -42,7 +44,6 @@ pub enum Kind {
 	colon // :
 	arrow // <-
 	amp // &
-	hash // #
 	dollar // $
 	at // @
 	str_dollar
@@ -74,12 +75,11 @@ pub enum Kind {
 	lt // <
 	ge // >=
 	le // <=
-	comment
-	nl
 	dot // .
 	dotdot // ..
 	ellipsis // ...
-	keyword_beg
+	_op_end_
+	_keyword_beg_
 	key_as
 	key_asm
 	key_assert
@@ -125,7 +125,7 @@ pub enum Kind {
 	key_pub
 	key_static
 	key_unsafe
-	keyword_end
+	_keyword_end_
 	_end_
 }
 
@@ -187,7 +187,7 @@ pub const (
 // Keywords['return'] == .key_return
 fn build_keys() map[string]Kind {
 	mut res := map[string]Kind{}
-	for t in int(Kind.keyword_beg) + 1 .. int(Kind.keyword_end) {
+	for t in int(Kind._keyword_beg_) + 1 .. int(Kind._keyword_end_) {
 		key := token.token_str[t]
 		res[key] = Kind(t)
 	}
@@ -255,10 +255,9 @@ fn build_token_str() []string {
 	s[Kind.left_shift] = '<<'
 	s[Kind.right_shift] = '>>'
 	s[Kind.comment] = 'comment'
-	s[Kind.nl] = 'NLL'
 	s[Kind.dollar] = '$'
 	s[Kind.at] = '@'
-	s[Kind.str_dollar] = '$2'
+	s[Kind.str_dollar] = '\$2'
 	s[Kind.key_assert] = 'assert'
 	s[Kind.key_struct] = 'struct'
 	s[Kind.key_if] = 'if'
@@ -308,12 +307,9 @@ fn build_token_str() []string {
 	return s
 }
 
-const (
-	token_str = build_token_str()
-)
-
 pub const (
-	keywords = build_keys()
+	token_str = build_token_str()
+	keywords  = build_keys()
 )
 
 [inline]

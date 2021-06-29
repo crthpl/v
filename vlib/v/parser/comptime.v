@@ -17,6 +17,7 @@ fn (mut p Parser) hash() ast.HashStmt {
 	pos := p.tok.position()
 	val := p.tok.lit
 	kind := val.all_before(' ')
+	println('kind: $kind')
 	p.next()
 	mut main_str := ''
 	mut msg := ''

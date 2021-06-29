@@ -229,7 +229,7 @@ pub fn parse_vet_file(path string, table_ &ast.Table, pref &pref.Preferences) (&
 			}
 		}
 	}
-	p.vet_errors << p.scanner.vet_errors
+	//	p.vet_errors << p.scanner.vet_errors
 	file := p.parse()
 	return file, p.vet_errors
 }
@@ -282,7 +282,7 @@ pub fn (mut p Parser) parse() &ast.File {
 		path: p.file_name
 		path_base: p.file_base
 		is_test: p.inside_test_file
-		nr_lines: p.scanner.line_nr
+		nr_lines: p.scanner.line
 		nr_bytes: p.scanner.text.len
 		mod: module_decl
 		imports: p.ast_imports
@@ -379,7 +379,7 @@ pub fn (mut p Parser) read_first_token() {
 }
 
 [inline]
-pub fn (p &Parser) peek_token(n int) token.Token {
+pub fn (mut p Parser) peek_token(n int) token.Token {
 	return p.scanner.peek_token(n - 2)
 }
 
@@ -1839,7 +1839,7 @@ fn (p &Parser) is_typename(t token.Token) bool {
 // 6. `f<mod.Foo,` is same as case 4
 // 7. otherwise, it's not generic
 // see also test_generic_detection in vlib/v/tests/generics_test.v
-fn (p &Parser) is_generic_call() bool {
+fn (mut p Parser) is_generic_call() bool {
 	lit0_is_capital := if p.tok.kind != .eof && p.tok.lit.len > 0 {
 		p.tok.lit[0].is_capital()
 	} else {
@@ -3200,7 +3200,6 @@ fn verror(s string) {
 fn (mut p Parser) top_level_statement_start() {
 	if p.comments_mode == .toplevel_comments {
 		p.scanner.set_is_inside_toplevel_statement(true)
-		p.rewind_scanner_to_current_token_in_new_mode()
 		$if debugscanner ? {
 			eprintln('>> p.top_level_statement_start | tidx:${p.tok.tidx:-5} | p.tok.kind: ${p.tok.kind:-10} | p.tok.lit: $p.tok.lit $p.peek_tok.lit ${p.peek_token(2).lit} ${p.peek_token(3).lit} ...')
 		}
@@ -3210,30 +3209,8 @@ fn (mut p Parser) top_level_statement_start() {
 fn (mut p Parser) top_level_statement_end() {
 	if p.comments_mode == .toplevel_comments {
 		p.scanner.set_is_inside_toplevel_statement(false)
-		p.rewind_scanner_to_current_token_in_new_mode()
 		$if debugscanner ? {
 			eprintln('>> p.top_level_statement_end   | tidx:${p.tok.tidx:-5} | p.tok.kind: ${p.tok.kind:-10} | p.tok.lit: $p.tok.lit $p.peek_tok.lit ${p.peek_token(2).lit} ${p.peek_token(3).lit} ...')
-		}
-	}
-}
-
-fn (mut p Parser) rewind_scanner_to_current_token_in_new_mode() {
-	// Go back and rescan some tokens, ensuring that the parser's
-	// lookahead buffer p.peek_tok .. p.peek_token(3), will now contain
-	// the correct tokens (possible comments), for the new mode
-	// This refilling of the lookahead buffer is needed for the
-	// .toplevel_comments parsing mode.
-	tidx := p.tok.tidx
-	p.scanner.set_current_tidx(tidx - 5)
-	no_token := token.Token{}
-	p.prev_tok = no_token
-	p.tok = no_token
-	p.peek_tok = no_token
-	for {
-		p.next()
-		// eprintln('rewinding to ${p.tok.tidx:5} | goal: ${tidx:5}')
-		if tidx == p.tok.tidx {
-			break
 		}
 	}
 }
